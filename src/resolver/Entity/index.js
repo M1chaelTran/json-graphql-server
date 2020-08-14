@@ -6,6 +6,7 @@ import {
     getReverseRelatedField,
 } from '../../nameConverter';
 import { isRelationshipField } from '../../relationships';
+import { camelize } from 'inflection';
 
 /**
  * Add resolvers for relationship fields
@@ -56,7 +57,7 @@ export default (entityName, data) => {
     const manyToOneResolvers = entityFields.filter(isRelationshipField).reduce(
         (resolvers, fieldName) =>
             Object.assign({}, resolvers, {
-                [getRelatedType(fieldName)]: (entity) =>
+                [camelize(getRelatedType(fieldName), true)]: (entity) =>
                     data[getRelatedKey(fieldName)].find(
                         (relatedRecord) => relatedRecord.id == entity[fieldName]
                     ),
@@ -74,7 +75,9 @@ export default (entityName, data) => {
     const oneToManyResolvers = entities.filter(hasReverseRelationship).reduce(
         (resolvers, entityName) =>
             Object.assign({}, resolvers, {
-                [getRelationshipFromKey(entityName)]: (entity) =>
+                [camelize(getRelationshipFromKey(entityName), true)]: (
+                    entity
+                ) =>
                     data[entityName].filter(
                         (record) => record[relatedField] == entity.id
                     ),

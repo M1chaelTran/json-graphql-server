@@ -184,8 +184,8 @@ export default (data) => {
                 const relType = getRelatedType(fieldName);
                 const rel = pluralize(type.toString());
                 ext += `
-extend type ${type} { ${relType}: ${relType} }
-extend type ${relType} { ${rel}: [${type}] }`;
+extend type ${type} { ${camelize(relType, true)}: ${relType} }
+extend type ${relType} { ${camelize(rel, true)}: [${type}] }`;
             });
         return ext;
     }, '');
