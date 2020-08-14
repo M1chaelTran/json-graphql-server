@@ -1,4 +1,4 @@
-import { pluralize } from 'inflection';
+import { pluralize, camelize } from 'inflection';
 import GraphQLJSON from 'graphql-type-json';
 
 import all from './Query/all';
@@ -13,9 +13,9 @@ import DateType from '../introspection/DateType';
 import hasType from '../introspection/hasType';
 
 const getQueryResolvers = (entityName, data) => ({
-    [`all${pluralize(entityName)}`]: all(data),
-    [`_all${pluralize(entityName)}Meta`]: meta(data),
-    [entityName]: single(data),
+    [camelize(entityName, true)]: single(data),
+    [camelize(pluralize(entityName), true)]: all(data),
+    [`${camelize(pluralize(entityName), true)}Meta`]: meta(data),
 });
 
 const getMutationResolvers = (entityName, data) => ({

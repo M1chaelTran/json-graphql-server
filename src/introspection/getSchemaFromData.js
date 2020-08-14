@@ -9,6 +9,7 @@ import {
     GraphQLString,
     parse,
     extendSchema,
+    isInputObjectType,
 } from 'graphql';
 import { pluralize, camelize } from 'inflection';
 
@@ -95,13 +96,16 @@ export default (data) => {
     const queryType = new GraphQLObjectType({
         name: 'Query',
         fields: types.reduce((fields, type) => {
-            fields[type.name] = {
+            if (isInputObjectType(type)) return fields;
+
+            fields[camelize(type.name, true)] = {
                 type: typesByName[type.name],
                 args: {
                     id: { type: new GraphQLNonNull(GraphQLID) },
                 },
             };
-            fields[`all${camelize(pluralize(type.name))}`] = {
+
+            fields[camelize(pluralize(type.name), true)] = {
                 type: new GraphQLList(typesByName[type.name]),
                 args: {
                     page: { type: GraphQLInt },
@@ -111,7 +115,8 @@ export default (data) => {
                     filter: { type: filterTypesByName[type.name] },
                 },
             };
-            fields[`_all${camelize(pluralize(type.name))}Meta`] = {
+
+            fields[`${camelize(pluralize(type.name), true)}Meta`] = {
                 type: listMetadataType,
                 args: {
                     page: { type: GraphQLInt },
@@ -126,28 +131,26 @@ export default (data) => {
     const mutationType = new GraphQLObjectType({
         name: 'Mutation',
         fields: types.reduce((fields, type) => {
-            const typeFields = typesByName[type.name].getFields();
-            const nullableTypeFields = Object.keys(typeFields).reduce(
-                (f, fieldName) => {
-                    f[fieldName] = Object.assign({}, typeFields[fieldName], {
-                        type:
-                            fieldName !== 'id' &&
-                            typeFields[fieldName].type instanceof GraphQLNonNull
-                                ? typeFields[fieldName].type.ofType
-                                : typeFields[fieldName].type,
-                    });
-                    return f;
-                },
-                {}
-            );
+            if (isInputObjectType(type)) return fields;
+
+            const GraphQLInputType = typesByName[`${type.name}Input`];
+
+            const typeFields = GraphQLInputType.getFields();
             fields[`create${type.name}`] = {
                 type: typesByName[type.name],
                 args: typeFields,
             };
+
             fields[`update${type.name}`] = {
                 type: typesByName[type.name],
-                args: nullableTypeFields,
+                args: {
+                    id: { type: new GraphQLNonNull(GraphQLID) },
+                    input: {
+                        type: new GraphQLNonNull(GraphQLInputType),
+                    },
+                },
             };
+
             fields[`remove${type.name}`] = {
                 type: GraphQLBoolean,
                 args: {
@@ -173,6 +176,8 @@ export default (data) => {
      *     extend type User { Posts: [Post] }
      */
     const schemaExtension = Object.values(typesByName).reduce((ext, type) => {
+        if (isInputObjectType(type)) return ext;
+
         Object.keys(type.getFields())
             .filter(isRelationshipField)
             .map((fieldName) => {

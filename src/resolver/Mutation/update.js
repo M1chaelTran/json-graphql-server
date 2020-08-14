@@ -9,7 +9,7 @@ export default (entityData = []) => (_, params) => {
             entityData[indexOfEntity] = Object.assign(
                 {},
                 entityData[indexOfEntity],
-                params
+                params.input
             );
             updatedEntity = entityData[indexOfEntity];
         }

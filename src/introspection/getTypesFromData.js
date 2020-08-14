@@ -1,11 +1,11 @@
-import { GraphQLObjectType } from 'graphql';
+import { GraphQLObjectType, GraphQLInputObjectType } from 'graphql';
 import { singularize, camelize } from 'inflection';
 
 import getFieldsFromEntities from './getFieldsFromEntities';
 import { getTypeFromKey } from '../nameConverter';
 
 /**
- * Get a list of GraphQLObjectType from data
+ * Get a list of GraphQLObjectType and GraphQLInputObjectType from data
  *
  * @example
  * const data = {
@@ -37,7 +37,7 @@ import { getTypeFromKey } from '../nameConverter';
  * const types = getTypesFromData(data);
  * // [
  * //     new GraphQLObjectType({
- * //         name: "Posts",
+ * //         name: "Post",
  * //         fields: {
  * //             id: { type: graphql.GraphQLString },
  * //             title: { type: graphql.GraphQLString },
@@ -46,7 +46,23 @@ import { getTypeFromKey } from '../nameConverter';
  * //         }
  * //     }),
  * //     new GraphQLObjectType({
- * //         name: "Users",
+ * //         name: "User",
+ * //         fields: {
+ * //             id: { type: graphql.GraphQLString },
+ * //             name: { type: graphql.GraphQLString },
+ * //         }
+ * //     }),
+ * //     new GraphQLInputObjectType({
+ * //         name: "PostInput",
+ * //         fields: {
+ * //             id: { type: graphql.GraphQLString },
+ * //             title: { type: graphql.GraphQLString },
+ * //             views: { type: graphql.GraphQLInt },
+ * //             user_id: { type: graphql.GraphQLString },
+ * //         }
+ * //     }),
+ * //     new GraphQLInputObjectType({
+ * //         name: "UserInput",
  * //         fields: {
  * //             id: { type: graphql.GraphQLString },
  * //             name: { type: graphql.GraphQLString },
@@ -58,9 +74,24 @@ export default (data) =>
     Object.keys(data)
         .map((typeName) => ({
             name: camelize(singularize(typeName)),
-            fields: getFieldsFromEntities(data[typeName]),
+            fields: getFieldsFromEntities(data[typeName], false),
         }))
-        .map((typeObject) => new GraphQLObjectType(typeObject));
+        .reduce((acc, typeObject) => {
+            acc.push(
+                new GraphQLObjectType({
+                    name: typeObject.name,
+                    fields: typeObject.fields,
+                })
+            );
+
+            acc.push(
+                new GraphQLInputObjectType({
+                    name: `${typeObject.name}Input`,
+                    fields: typeObject.fields,
+                })
+            );
+            return acc;
+        }, []);
 
 export const getTypeNamesFromData = (data) =>
     Object.keys(data).map(getTypeFromKey);
